@@ -158,7 +158,7 @@ export default function Result({
                       (c) => c.id === compId
                     );
                     const label = comp
-                      ? `${comp.id} (${comp.kind === 'resistor' ? 'resistor' : 'voltage source'})`
+                      ? `${comp.id} (${comp.type === 'resistor' ? 'resistor' : 'voltage source'})`
                       : compId;
                     return (
                       <tr key={compId}>

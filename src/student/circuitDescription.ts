@@ -7,17 +7,21 @@
  * - No React, no side effects.
  */
 
-import type { Circuit, CircuitComponent } from '../shared/types';
+import type { Circuit, Component } from '../shared/types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Return a human-readable label for a component terminal. */
-function terminalLabel(kind: CircuitComponent['kind'], terminalId: string): string {
-  if (kind === 'voltage-source') {
-    if (terminalId === 'positive') return 'positive terminal';
-    if (terminalId === 'negative') return 'negative terminal';
+/** Return a human-readable label for a component terminal based on array index. */
+function terminalLabel(type: Component['type'], index: number): string {
+  if (type === 'voltage_source') {
+    if (index === 0) return 'positive terminal';
+    if (index === 1) return 'negative terminal';
   }
-  return `terminal ${terminalId}`;
+  if (type === 'resistor') {
+    if (index === 0) return 'terminal A';
+    if (index === 1) return 'terminal B';
+  }
+  return `terminal ${index}`;
 }
 
 function capitalise(s: string): string {
@@ -33,15 +37,15 @@ function capitalise(s: string): string {
  * "Parallel Resistor Circuit. One voltage source (6 volt). 2 resistors. 2 electrical nodes."
  */
 export function circuitOverview(circuit: Circuit): string {
-  const sources = circuit.components.filter((c) => c.kind === 'voltage-source');
-  const resistors = circuit.components.filter((c) => c.kind === 'resistor');
+  const sources = circuit.components.filter((c) => c.type === 'voltage_source');
+  const resistors = circuit.components.filter((c) => c.type === 'resistor');
   const nodeCount = circuit.nodes.length;
 
-  const parts: string[] = [circuit.label];
+  const parts: string[] = [circuit.name];
 
   if (sources.length > 0) {
     const sourceDetails = sources.map((c) =>
-      c.kind === 'voltage-source' ? `${c.voltageVolts} volt` : ''
+      c.type === 'voltage_source' ? `${c.value} volt` : ''
     );
     const noun = sources.length === 1 ? 'voltage source' : 'voltage sources';
     const countWord = sources.length === 1 ? 'One' : `${sources.length}`;
@@ -75,21 +79,10 @@ export function componentDescription(circuit: Circuit, componentId: string): str
 
   const lines: string[] = [];
 
-  if (comp.kind === 'resistor') {
-    lines.push(`${comp.id}: Resistor, ${comp.resistanceOhms} ohms`);
-    for (const t of comp.terminals) {
-      if (t.nodeId !== null) {
-        const node = circuit.nodes.find((n) => n.id === t.nodeId);
-        const nodeLabel = node?.label ?? t.nodeId;
-        lines.push(`Terminal ${t.terminalId} connected to ${nodeLabel}`);
-      } else {
-        lines.push(`Terminal ${t.terminalId}: disconnected`);
-      }
-    }
-  } else if (comp.kind === 'voltage-source') {
-    lines.push(`${comp.id}: Voltage source, ${comp.voltageVolts} volts DC`);
-    for (const t of comp.terminals) {
-      const tLabel = terminalLabel('voltage-source', t.terminalId);
+  if (comp.type === 'resistor') {
+    lines.push(`${comp.id}: Resistor, ${comp.value} ohms`);
+    comp.terminals.forEach((t, index) => {
+      const tLabel = terminalLabel('resistor', index);
       const prefix = capitalise(tLabel);
       if (t.nodeId !== null) {
         const node = circuit.nodes.find((n) => n.id === t.nodeId);
@@ -98,7 +91,20 @@ export function componentDescription(circuit: Circuit, componentId: string): str
       } else {
         lines.push(`${prefix}: disconnected`);
       }
-    }
+    });
+  } else if (comp.type === 'voltage_source') {
+    lines.push(`${comp.id}: Voltage source, ${comp.value} volts DC`);
+    comp.terminals.forEach((t, index) => {
+      const tLabel = terminalLabel('voltage_source', index);
+      const prefix = capitalise(tLabel);
+      if (t.nodeId !== null) {
+        const node = circuit.nodes.find((n) => n.id === t.nodeId);
+        const nodeLabel = node?.label ?? t.nodeId;
+        lines.push(`${prefix} connected to ${nodeLabel}`);
+      } else {
+        lines.push(`${prefix}: disconnected`);
+      }
+    });
   }
 
   return lines.join('. ') + '.';
@@ -118,11 +124,11 @@ export function nodeConnectionDescription(circuit: Circuit, nodeId: string): str
   const connections: string[] = [];
 
   for (const comp of circuit.components) {
-    for (const t of comp.terminals) {
+    comp.terminals.forEach((t, index) => {
       if (t.nodeId === nodeId) {
-        connections.push(`${comp.id} ${terminalLabel(comp.kind, t.terminalId)}`);
+        connections.push(`${comp.id} ${terminalLabel(comp.type, index)}`);
       }
-    }
+    });
   }
 
   if (connections.length === 0) {

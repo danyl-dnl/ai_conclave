@@ -3,7 +3,7 @@
  * No React, no side effects, no simulation logic.
  */
 
-import type { Circuit, TerminalConnection } from '../shared/types';
+import type { Circuit, Terminal } from '../shared/types';
 
 /**
  * Deep-clone a Circuit so the reference is never mutated.
@@ -33,8 +33,8 @@ export function disconnectTerminal(
       return {
         ...comp,
         terminals: comp.terminals.map((t) =>
-          t.terminalId === terminalId ? { ...t, nodeId: null } : t
-        ) as [TerminalConnection, TerminalConnection],
+          t.id === terminalId ? { ...t, nodeId: null } : t
+        ) as [Terminal, Terminal],
       };
     }),
   };

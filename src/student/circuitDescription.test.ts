@@ -12,37 +12,37 @@ import type { Circuit } from '../shared/types';
 /** Golden parallel circuit (no hard-coded descriptions — descriptions are generated). */
 const goldenCircuit: Circuit = {
   id: 'test-golden',
-  label: 'Parallel Resistor Circuit',
+  name: 'Parallel Resistor Circuit',
   nodes: [
     { id: 'A', label: 'Node A' },
     { id: 'B', label: 'Node B' },
   ],
   components: [
     {
-      kind: 'voltage-source',
+      type: 'voltage_source',
       id: 'V1',
-      voltageVolts: 6,
+      value: 6,
       terminals: [
-        { terminalId: 'positive', nodeId: 'A' },
-        { terminalId: 'negative', nodeId: 'B' },
+        { id: 'positive', nodeId: 'A' },
+        { id: 'negative', nodeId: 'B' },
       ],
     },
     {
-      kind: 'resistor',
+      type: 'resistor',
       id: 'R1',
-      resistanceOhms: 100,
+      value: 100,
       terminals: [
-        { terminalId: 'A', nodeId: 'A' },
-        { terminalId: 'B', nodeId: 'B' },
+        { id: 'A', nodeId: 'A' },
+        { id: 'B', nodeId: 'B' },
       ],
     },
     {
-      kind: 'resistor',
+      type: 'resistor',
       id: 'R2',
-      resistanceOhms: 200,
+      value: 200,
       terminals: [
-        { terminalId: 'A', nodeId: 'A' },
-        { terminalId: 'B', nodeId: 'B' },
+        { id: 'A', nodeId: 'A' },
+        { id: 'B', nodeId: 'B' },
       ],
     },
   ],
@@ -56,8 +56,8 @@ const circuitAfterDisconnect: Circuit = {
     return {
       ...c,
       terminals: c.terminals.map((t) =>
-        t.terminalId === 'A' ? { ...t, nodeId: null } : t
-      ) as [import('../shared/types').TerminalConnection, import('../shared/types').TerminalConnection],
+        t.id === 'A' ? { ...t, nodeId: null } : t
+      ) as [import('../shared/types').Terminal, import('../shared/types').Terminal],
     };
   }),
 };
@@ -65,16 +65,16 @@ const circuitAfterDisconnect: Circuit = {
 /** Minimal single-node single-resistor circuit for edge-case tests. */
 const minimalCircuit: Circuit = {
   id: 'test-minimal',
-  label: 'Simple Series',
+  name: 'Simple Series',
   nodes: [{ id: 'X' }],
   components: [
     {
-      kind: 'resistor',
+      type: 'resistor',
       id: 'R1',
-      resistanceOhms: 47,
+      value: 47,
       terminals: [
-        { terminalId: 'A', nodeId: 'X' },
-        { terminalId: 'B', nodeId: null },
+        { id: 'A', nodeId: 'X' },
+        { id: 'B', nodeId: null },
       ],
     },
   ],
@@ -111,16 +111,16 @@ describe('circuitOverview', () => {
     // The overview should be derivable from any circuit, not just the golden one.
     const custom: Circuit = {
       id: 'custom',
-      label: 'Custom Circuit',
+      name: 'Custom Circuit',
       nodes: [{ id: 'P' }, { id: 'Q' }, { id: 'R' }],
       components: [
         {
-          kind: 'voltage-source',
+          type: 'voltage_source',
           id: 'V1',
-          voltageVolts: 12,
+          value: 12,
           terminals: [
-            { terminalId: 'positive', nodeId: 'P' },
-            { terminalId: 'negative', nodeId: 'Q' },
+            { id: 'positive', nodeId: 'P' },
+            { id: 'negative', nodeId: 'Q' },
           ],
         },
       ],
@@ -212,7 +212,7 @@ describe('nodeConnectionDescription', () => {
   it('reports no connections for a truly isolated node', () => {
     const isolated: Circuit = {
       id: 'iso',
-      label: 'Isolated',
+      name: 'Isolated',
       nodes: [{ id: 'Z', label: 'Node Z' }],
       components: [],
     };
@@ -244,7 +244,7 @@ describe('componentIds', () => {
   it('returns an empty array for a circuit with no components', () => {
     const empty: Circuit = {
       id: 'e',
-      label: 'Empty',
+      name: 'Empty',
       nodes: [],
       components: [],
     };

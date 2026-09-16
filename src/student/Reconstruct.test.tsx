@@ -9,37 +9,37 @@ import type { Circuit } from '../shared/types';
 
 const referenceCircuit: Circuit = {
   id: 'ref',
-  label: 'Parallel Resistor Circuit',
+  name: 'Parallel Resistor Circuit',
   nodes: [
     { id: 'A', label: 'Node A' },
     { id: 'B', label: 'Node B' },
   ],
   components: [
     {
-      kind: 'voltage-source',
+      type: 'voltage_source',
       id: 'V1',
-      voltageVolts: 6,
+      value: 6,
       terminals: [
-        { terminalId: 'positive', nodeId: 'A' },
-        { terminalId: 'negative', nodeId: 'B' },
+        { id: 'positive', nodeId: 'A' },
+        { id: 'negative', nodeId: 'B' },
       ],
     },
     {
-      kind: 'resistor',
+      type: 'resistor',
       id: 'R1',
-      resistanceOhms: 100,
+      value: 100,
       terminals: [
-        { terminalId: 'A', nodeId: 'A' },
-        { terminalId: 'B', nodeId: 'B' },
+        { id: 'A', nodeId: 'A' },
+        { id: 'B', nodeId: 'B' },
       ],
     },
     {
-      kind: 'resistor',
+      type: 'resistor',
       id: 'R2',
-      resistanceOhms: 200,
+      value: 200,
       terminals: [
-        { terminalId: 'A', nodeId: 'A' },
-        { terminalId: 'B', nodeId: 'B' },
+        { id: 'A', nodeId: 'A' },
+        { id: 'B', nodeId: 'B' },
       ],
     },
   ],
@@ -311,15 +311,15 @@ describe('Reconstruct — Submission', () => {
     expect(onSubmit).toHaveBeenCalledOnce();
     const submitted: Circuit = onSubmit.mock.calls[0][0];
 
-    // Must have id, label, nodes, components.
+    // Must have id, name, nodes, components.
     expect(typeof submitted.id).toBe('string');
-    expect(typeof submitted.label).toBe('string');
+    expect(typeof submitted.name).toBe('string');
     expect(Array.isArray(submitted.nodes)).toBe(true);
     expect(Array.isArray(submitted.components)).toBe(true);
 
     // Component must have correct shape.
     const comp = submitted.components[0];
-    expect(comp.kind).toBe('voltage-source');
+    expect(comp.type).toBe('voltage_source');
     expect(comp.id).toBe('V1');
     expect(Array.isArray(comp.terminals)).toBe(true);
     expect(comp.terminals).toHaveLength(2);

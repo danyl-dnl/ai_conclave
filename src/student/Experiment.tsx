@@ -66,7 +66,7 @@ export default function Experiment({
       return;
     }
     const connected = comp.terminals.filter((t) => t.nodeId !== null);
-    setSelectedTerminalId(connected.length > 0 ? connected[0].terminalId : '');
+    setSelectedTerminalId(connected.length > 0 ? connected[0].id : '');
   }, [selectedComponentId, workingCircuit.components]);
 
   const selectedComp = workingCircuit.components.find((c) => c.id === selectedComponentId);
@@ -139,9 +139,9 @@ export default function Experiment({
           {workingCircuit.components.map((comp) => (
             <option key={comp.id} value={comp.id}>
               {comp.id} —{' '}
-              {comp.kind === 'resistor'
-                ? `Resistor ${comp.resistanceOhms} Ω`
-                : `Voltage source ${comp.voltageVolts} V`}
+              {comp.type === 'resistor'
+                ? `Resistor ${comp.value} Ω`
+                : `Voltage source ${comp.value} V`}
             </option>
           ))}
         </select>
@@ -168,8 +168,8 @@ export default function Experiment({
             onChange={(e) => setSelectedTerminalId(e.target.value)}
           >
             {connectableTerminals.map((t) => (
-              <option key={t.terminalId} value={t.terminalId}>
-                Terminal {t.terminalId} → currently connected to Node {t.nodeId}
+              <option key={t.id} value={t.id}>
+                Terminal {t.id} → currently connected to Node {t.nodeId}
               </option>
             ))}
           </select>

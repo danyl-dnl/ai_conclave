@@ -9,37 +9,37 @@ import type { Circuit } from '../shared/types';
 
 const testCircuit: Circuit = {
   id: 'test',
-  label: 'Test Parallel Circuit',
+  name: 'Test Parallel Circuit',
   nodes: [
     { id: 'A', label: 'Node A' },
     { id: 'B', label: 'Node B' },
   ],
   components: [
     {
-      kind: 'voltage-source',
+      type: 'voltage_source',
       id: 'V1',
-      voltageVolts: 6,
+      value: 6,
       terminals: [
-        { terminalId: 'positive', nodeId: 'A' },
-        { terminalId: 'negative', nodeId: 'B' },
+        { id: 'positive', nodeId: 'A' },
+        { id: 'negative', nodeId: 'B' },
       ],
     },
     {
-      kind: 'resistor',
+      type: 'resistor',
       id: 'R1',
-      resistanceOhms: 100,
+      value: 100,
       terminals: [
-        { terminalId: 'A', nodeId: 'A' },
-        { terminalId: 'B', nodeId: 'B' },
+        { id: 'A', nodeId: 'A' },
+        { id: 'B', nodeId: 'B' },
       ],
     },
     {
-      kind: 'resistor',
+      type: 'resistor',
       id: 'R2',
-      resistanceOhms: 200,
+      value: 200,
       terminals: [
-        { terminalId: 'A', nodeId: 'A' },
-        { terminalId: 'B', nodeId: 'B' },
+        { id: 'A', nodeId: 'A' },
+        { id: 'B', nodeId: 'B' },
       ],
     },
   ],

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import type { Circuit, CircuitComponent, TerminalConnection } from '../shared/types';
+import type { Circuit, Component, Terminal } from '../shared/types';
 
 // ─── Local draft types (reconstruction UI state only) ─────────────────────────
 
@@ -9,43 +9,42 @@ interface DraftNode {
 }
 
 interface DraftTerminal {
-  terminalId: string;
+  id: string;
   nodeId: string | null; // null = disconnected / unassigned
 }
 
 interface DraftComponent {
   /** Stable React key — never shown to the user. */
   draftKey: string;
-  kind: 'resistor' | 'voltage-source';
+  type: 'resistor' | 'voltage_source';
   id: string;
   /** Stored as a string so the input field is controlled without parsing mid-edit. */
-  resistanceOhms: string;
-  voltageVolts: string;
+  value: string;
   terminals: DraftTerminal[];
 }
 
-function defaultTerminals(kind: 'resistor' | 'voltage-source'): DraftTerminal[] {
-  if (kind === 'resistor') {
+function defaultTerminals(type: 'resistor' | 'voltage_source'): DraftTerminal[] {
+  if (type === 'resistor') {
     return [
-      { terminalId: 'A', nodeId: null },
-      { terminalId: 'B', nodeId: null },
+      { id: 'A', nodeId: null },
+      { id: 'B', nodeId: null },
     ];
   }
-  // voltage-source: terminals[0] = positive, terminals[1] = negative
+  // voltage_source: terminals[0] = positive, terminals[1] = negative
   return [
-    { terminalId: 'positive', nodeId: null },
-    { terminalId: 'negative', nodeId: null },
+    { id: 'positive', nodeId: null },
+    { id: 'negative', nodeId: null },
   ];
 }
 
 function terminalDisplayLabel(
-  kind: 'resistor' | 'voltage-source',
-  terminalId: string
+  type: 'resistor' | 'voltage_source',
+  id: string
 ): string {
-  if (kind === 'voltage-source') {
-    return terminalId === 'positive' ? 'Positive terminal' : 'Negative terminal';
+  if (type === 'voltage_source') {
+    return id === 'positive' ? 'Positive terminal' : 'Negative terminal';
   }
-  return `Terminal ${terminalId}`;
+  return `Terminal ${id}`;
 }
 
 // ─── Component props ──────────────────────────────────────────────────────────
@@ -129,18 +128,17 @@ export default function Reconstruct({
 
   // ── Component management ───────────────────────────────────────────────────
 
-  function addComponent(kind: 'resistor' | 'voltage-source') {
+  function addComponent(type: 'resistor' | 'voltage_source') {
     const key = String(draftCounter);
     setDraftCounter((k) => k + 1);
     setComponents((prev) => [
       ...prev,
       {
         draftKey: key,
-        kind,
+        type,
         id: '',
-        resistanceOhms: '',
-        voltageVolts: '',
-        terminals: defaultTerminals(kind),
+        value: '',
+        terminals: defaultTerminals(type),
       },
     ]);
   }
@@ -151,7 +149,7 @@ export default function Reconstruct({
 
   function updateField(
     draftKey: string,
-    field: 'id' | 'resistanceOhms' | 'voltageVolts',
+    field: 'id' | 'value',
     value: string
   ) {
     setComponents((prev) =>
@@ -161,7 +159,7 @@ export default function Reconstruct({
 
   function updateTerminal(
     draftKey: string,
-    terminalId: string,
+    id: string,
     nodeId: string | null
   ) {
     setComponents((prev) =>
@@ -170,7 +168,7 @@ export default function Reconstruct({
         return {
           ...c,
           terminals: c.terminals.map((t) =>
-            t.terminalId === terminalId ? { ...t, nodeId } : t
+            t.id === id ? { ...t, nodeId } : t
           ),
         };
       })
@@ -201,15 +199,15 @@ export default function Reconstruct({
         seenIds.add(trimmedId);
       }
 
-      if (comp.kind === 'resistor') {
-        const r = parseFloat(comp.resistanceOhms);
+      if (comp.type === 'resistor') {
+        const r = parseFloat(comp.value);
         if (isNaN(r) || r <= 0) {
           errors.push(
             `${trimmedId || '(unnamed)'}: Resistance must be a positive number in ohms.`
           );
         }
       } else {
-        const v = parseFloat(comp.voltageVolts);
+        const v = parseFloat(comp.value);
         if (isNaN(v)) {
           errors.push(`${trimmedId || '(unnamed)'}: Voltage must be a number.`);
         }
@@ -226,24 +224,24 @@ export default function Reconstruct({
     // Build canonical Circuit.
     const circuitNodes = nodes.map((n) => ({ id: n.id, label: n.id }));
 
-    const circuitComponents: CircuitComponent[] = components.map((comp) => {
-      const terminals: [TerminalConnection, TerminalConnection] = [
-        { terminalId: comp.terminals[0].terminalId, nodeId: comp.terminals[0].nodeId },
-        { terminalId: comp.terminals[1].terminalId, nodeId: comp.terminals[1].nodeId },
+    const circuitComponents: Component[] = components.map((comp) => {
+      const terminals: [Terminal, Terminal] = [
+        { id: comp.terminals[0].id, nodeId: comp.terminals[0].nodeId },
+        { id: comp.terminals[1].id, nodeId: comp.terminals[1].nodeId },
       ];
 
-      if (comp.kind === 'resistor') {
+      if (comp.type === 'resistor') {
         return {
-          kind: 'resistor' as const,
+          type: 'resistor' as const,
           id: comp.id.trim(),
-          resistanceOhms: parseFloat(comp.resistanceOhms),
+          value: parseFloat(comp.value),
           terminals,
         };
       } else {
         return {
-          kind: 'voltage-source' as const,
+          type: 'voltage_source' as const,
           id: comp.id.trim(),
-          voltageVolts: parseFloat(comp.voltageVolts),
+          value: parseFloat(comp.value),
           terminals,
         };
       }
@@ -251,7 +249,7 @@ export default function Reconstruct({
 
     const circuit: Circuit = {
       id: `student-reconstruction-${Date.now()}`,
-      label: 'Student Reconstruction',
+      name: 'Student Reconstruction',
       nodes: circuitNodes,
       components: circuitComponents,
     };
@@ -292,7 +290,7 @@ export default function Reconstruct({
       </p>
 
       <p className="student-note">
-        Reference circuit: {referenceCircuit.label} — {referenceCircuit.nodes.length}{' '}
+        Reference circuit: {referenceCircuit.name} — {referenceCircuit.nodes.length}{' '}
         node{referenceCircuit.nodes.length !== 1 ? 's' : ''},{' '}
         {referenceCircuit.components.length} component
         {referenceCircuit.components.length !== 1 ? 's' : ''}.
@@ -374,7 +372,7 @@ export default function Reconstruct({
                 {/* Header */}
                 <div className="student-component-header">
                   <span className="student-kind-badge">
-                    {comp.kind === 'resistor' ? 'Resistor' : 'Voltage Source'}
+                    {comp.type === 'resistor' ? 'Resistor' : 'Voltage Source'}
                   </span>
                   <button
                     type="button"
@@ -404,13 +402,13 @@ export default function Reconstruct({
                         updateField(comp.draftKey, 'id', e.target.value)
                       }
                       placeholder={
-                        comp.kind === 'resistor' ? 'e.g. R1' : 'e.g. V1'
+                        comp.type === 'resistor' ? 'e.g. R1' : 'e.g. V1'
                       }
                       aria-label="Component ID"
                     />
                   </div>
 
-                  {comp.kind === 'resistor' ? (
+                  {comp.type === 'resistor' ? (
                     <div className="student-form-group student-form-group--inline">
                       <label
                         htmlFor={`reconstruct-r-${comp.draftKey}`}
@@ -424,11 +422,11 @@ export default function Reconstruct({
                         min="0"
                         step="any"
                         className="student-input"
-                        value={comp.resistanceOhms}
+                        value={comp.value}
                         onChange={(e) =>
                           updateField(
                             comp.draftKey,
-                            'resistanceOhms',
+                            'value',
                             e.target.value
                           )
                         }
@@ -449,11 +447,11 @@ export default function Reconstruct({
                         type="number"
                         step="any"
                         className="student-input"
-                        value={comp.voltageVolts}
+                        value={comp.value}
                         onChange={(e) =>
                           updateField(
                             comp.draftKey,
-                            'voltageVolts',
+                            'value',
                             e.target.value
                           )
                         }
@@ -469,23 +467,23 @@ export default function Reconstruct({
                   <h4>Terminal Assignments</h4>
                   {comp.terminals.map((t) => (
                     <div
-                      key={t.terminalId}
+                      key={t.id}
                       className="student-form-group student-form-group--inline"
                     >
                       <label
-                        htmlFor={`reconstruct-t-${comp.draftKey}-${t.terminalId}`}
+                        htmlFor={`reconstruct-t-${comp.draftKey}-${t.id}`}
                         className="student-label"
                       >
-                        {terminalDisplayLabel(comp.kind, t.terminalId)}
+                        {terminalDisplayLabel(comp.type, t.id)}
                       </label>
                       <select
-                        id={`reconstruct-t-${comp.draftKey}-${t.terminalId}`}
+                        id={`reconstruct-t-${comp.draftKey}-${t.id}`}
                         className="student-select"
                         value={t.nodeId ?? ''}
                         onChange={(e) =>
                           updateTerminal(
                             comp.draftKey,
-                            t.terminalId,
+                            t.id,
                             e.target.value === '' ? null : e.target.value
                           )
                         }
@@ -522,7 +520,7 @@ export default function Reconstruct({
               id="reconstruct-add-voltage-source-btn"
               type="button"
               className="student-btn student-btn--secondary"
-              onClick={() => addComponent('voltage-source')}
+              onClick={() => addComponent('voltage_source')}
             >
               + Voltage Source
             </button>
