@@ -152,4 +152,30 @@ describe('verifyCircuit', () => {
     expect(result.equivalent).toBe(false);
     expect(result.mismatches[0].type).toBe('MALFORMED_CIRCUIT');
   });
+
+  it('Test N: Empty declared node list -> FAIL (MALFORMED_CIRCUIT)', () => {
+    const student = cloneCircuit(goldenCircuit);
+    student.nodes = []; // declared node list is empty
+    const result = verifyCircuit(goldenCircuit, student);
+    expect(result.equivalent).toBe(false);
+    expect(result.mismatches[0].type).toBe('MALFORMED_CIRCUIT');
+  });
+
+  it('KNOWN LIMITATION: Symmetric 2-node circuit cannot detect voltage-source polarity reversal via node-renaming-independent matching', () => {
+    // In the golden circuit (V1:A→B, R1:A↔B, R2:A↔B) every component shares A and B.
+    // Reversing V1 to B→A is structurally identical to relabelling A↔B, so the
+    // bijection {stuA→refB, stuB→refA} produces an exact match. This is mathematically
+    // unavoidable in purely node-renaming-independent matching.
+    // Polarity detection requires an asymmetric circuit (≥3 nodes) — see Test H.
+    const student = cloneCircuit(goldenCircuit);
+    const t0 = student.components[0].terminals[0].nodeId;
+    const t1 = student.components[0].terminals[1].nodeId;
+    student.components[0].terminals[0].nodeId = t1;
+    student.components[0].terminals[1].nodeId = t0;
+
+    const result = verifyCircuit(goldenCircuit, student);
+    // Documents the known limitation: this PASSES rather than failing with POLARITY_MISMATCH.
+    // Mitigation: teacher activities involving polarity assessment must use asymmetric circuits.
+    expect(result.equivalent).toBe(true);
+  });
 });

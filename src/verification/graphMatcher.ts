@@ -36,9 +36,22 @@ export function checkStructuralEquivalence(ref: Circuit, stu: Circuit): Verifica
     }
   }
 
-  // 2. Collect distinct node IDs from the declared node list
+  // 2. Collect distinct node IDs from the declared node list.
+  // Using circuit.nodes (the declared registry) rather than terminal references so
+  // that declared-but-currently-unconnected nodes count toward topology comparison.
   const refNodes = ref.nodes.map(n => n.id);
   const stuNodes = stu.nodes.map(n => n.id);
+
+  // Guard: if either circuit declares no nodes, the structural check cannot proceed.
+  if (refNodes.length === 0 || stuNodes.length === 0) {
+    return {
+      equivalent: false,
+      mismatches: [{
+        type: 'MALFORMED_CIRCUIT',
+        message: 'Circuit contains no declared nodes and cannot be structurally verified.'
+      }]
+    };
+  }
 
   if (refNodes.length !== stuNodes.length) {
     return {
@@ -50,7 +63,22 @@ export function checkStructuralEquivalence(ref: Circuit, stu: Circuit): Verifica
     };
   }
 
-  // 3. Try every bijection (refNodes permutation), mapping stuNodes[i] -> permutation[i]
+  // 3. Try every bijection (refNodes permutation), mapping stuNodes[i] -> permutation[i].
+  //
+  // KNOWN LIMITATION — Symmetric polarity detection:
+  // In a fully symmetric circuit where every component shares the same two nodes
+  // (e.g. golden circuit: V1:A→B, R1:A↔B, R2:A↔B), reversing V1 polarity to B→A
+  // is indistinguishable from relabelling nodes A↔B. The bijection {stuA→refB, stuB→refA}
+  // maps the reversed voltage source to an exact forward match, so the circuit passes.
+  //
+  // Polarity reversal IS reliably detected when the circuit has ≥3 nodes or when
+  // at least one resistor breaks the A-B symmetry (e.g. R2: B↔C).
+  // Test H deliberately uses a 3-node asymmetric reference for this reason.
+  //
+  // Resolution: the teacher activity should declare asymmetric circuits for
+  // voltage-source polarity assessment, or the canonical contract should pin a
+  // reference node. This is not a verifier bug — it is an inherent property of
+  // node-renaming-independent structural matching.
   const bijections = generatePermutations(refNodes);
 
   // Track the best result found across bijections.
