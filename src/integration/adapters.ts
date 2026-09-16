@@ -75,10 +75,13 @@ function adaptMismatchType(type: StructuralMismatch['type']): Dev2VerifyResult['
     case 'CONNECTION_MISMATCH':
     case 'TOPOLOGY_MISMATCH':
     case 'DISCONNECTED_TERMINAL':
-      return 'connectivity';
     case 'MALFORMED_CIRCUIT':
-    default:
       return 'connectivity';
+    default: {
+      const _exhaustiveCheck: never = type;
+      void _exhaustiveCheck;
+      throw new Error(`Unsupported mismatch type: ${type as string}`);
+    }
   }
 }
 

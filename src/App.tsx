@@ -14,7 +14,12 @@ import {
 } from './integration/adapters';
 
 // ── Stable session ID for this page load ────────────────────────────────────
-const SESSION_ID = `session-${Date.now()}`;
+let SESSION_ID = sessionStorage.getItem('SESSION_ID');
+if (!SESSION_ID) {
+  SESSION_ID = `session-${Date.now()}`;
+  sessionStorage.setItem('SESSION_ID', SESSION_ID);
+}
+const ACTIVE_SESSION_ID = SESSION_ID as string;
 
 // ── Application view ─────────────────────────────────────────────────────────
 type AppView = 'teacher' | 'student' | 'evidence';
@@ -30,7 +35,7 @@ function App() {
   // (prevents unnecessary re-mounts of the student workspace).
   const simulateAdapter = useMemo(() => makeSimulateAdapter(simulateCircuit), []);
   const verifyAdapter   = useMemo(() => makeVerifyAdapter(verifyCircuit), []);
-  const onLearningEvent = useMemo(() => makeOnLearningEventAdapter(SESSION_ID), []);
+  const onLearningEvent = useMemo(() => makeOnLearningEventAdapter(ACTIVE_SESSION_ID), []);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function handleApprove(circuit: Circuit) {
@@ -157,7 +162,7 @@ function App() {
         {view === 'evidence' && (
           <section aria-labelledby="evidence-section-heading">
             <h2 id="evidence-section-heading">Learning Evidence</h2>
-            <EvidenceDashboard sessionId={SESSION_ID} />
+            <EvidenceDashboard sessionId={ACTIVE_SESSION_ID} />
           </section>
         )}
       </main>
