@@ -66,19 +66,21 @@ export function checkStructuralEquivalence(ref: Circuit, stu: Circuit): Verifica
   // 3. Try every bijection (refNodes permutation), mapping stuNodes[i] -> permutation[i].
   //
   // KNOWN LIMITATION — Symmetric polarity detection:
-  // In a fully symmetric circuit where every component shares the same two nodes
-  // (e.g. golden circuit: V1:A→B, R1:A↔B, R2:A↔B), reversing V1 polarity to B→A
-  // is indistinguishable from relabelling nodes A↔B. The bijection {stuA→refB, stuB→refA}
-  // maps the reversed voltage source to an exact forward match, so the circuit passes.
+  // In a symmetric circuit, reversing a voltage source may be mathematically
+  // indistinguishable from relabelling nodes. For example, in our original 2-node
+  // parallel demo circuit (V1:A→B, R1:A↔B, R2:A↔B), every component shares nodes A and B.
+  // Reversing V1 to B→A is structurally identical to relabelling nodes A↔B.
+  // The bijection {stuA→refB, stuB→refA} maps the reversed voltage source to an
+  // exact forward match, so the reversal passes. This is mathematically unavoidable
+  // in purely node-renaming-independent matching.
   //
-  // Polarity reversal IS reliably detected when the circuit has ≥3 nodes or when
-  // at least one resistor breaks the A-B symmetry (e.g. R2: B↔C).
-  // Test H deliberately uses a 3-node asymmetric reference for this reason.
+  // Polarity detection depends on circuit symmetry and reference constraints, not
+  // simply node count. A >2 node circuit can still have symmetries that hide reversal.
   //
-  // Resolution: the teacher activity should declare asymmetric circuits for
-  // voltage-source polarity assessment, or the canonical contract should pin a
-  // reference node. This is not a verifier bug — it is an inherent property of
-  // node-renaming-independent structural matching.
+  // Resolution: The integration team must be aware that for symmetric circuits (like the
+  // demo circuit), polarity reversal will pass. If strict polarity assessment is
+  // required, the teacher activity must use asymmetric circuits (see Test H) or the
+  // canonical contract must introduce node pinning (e.g. Ground).
   const bijections = generatePermutations(refNodes);
 
   // Track the best result found across bijections.
