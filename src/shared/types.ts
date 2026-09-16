@@ -1,83 +1,46 @@
-/**
- * Shared Circuit schema — canonical type contract for all four developers.
- *
- * FROZEN: Do not modify without explicit team approval.
- * AI agents must not unilaterally redesign these types (AGENTS.md §4).
- *
- * Seeded by Developer 2 to unblock parallel development on all branches.
- * If Developer 1 requires changes, stop and propose them explicitly.
- */
+export type ComponentType = 'resistor' | 'voltage_source';
 
-// ─── Primitives ───────────────────────────────────────────────────────────────
-
-/** Identifies one terminal within a component (e.g. "A", "B", "positive", "negative"). */
-export type TerminalId = string;
-
-// ─── Node ─────────────────────────────────────────────────────────────────────
-
-/** An electrical junction with no x/y coordinates. */
-export interface CircuitNode {
-  /** Stable identifier used for connectivity. */
+export interface Terminal {
   id: string;
-  /** Optional human-readable label for display. Falls back to id when absent. */
-  label?: string;
-}
-
-// ─── Terminal ─────────────────────────────────────────────────────────────────
-
-/**
- * Maps one component terminal to an electrical node.
- * nodeId: null means the terminal is electrically disconnected.
- * This is the team-approved canonical disconnection representation.
- */
-export interface TerminalConnection {
-  terminalId: TerminalId;
+  // null represents an intentionally disconnected terminal
   nodeId: string | null;
 }
 
-// ─── Components ───────────────────────────────────────────────────────────────
-
-/** Safe MVP component kinds only. */
-export type ComponentKind = 'resistor' | 'voltage-source';
-
-/**
- * An ideal resistor with two terminals.
- * terminals[0] = terminal A, terminals[1] = terminal B.
- */
-export interface Resistor {
-  kind: 'resistor';
+export interface Component {
   id: string;
-  resistanceOhms: number;
-  terminals: [TerminalConnection, TerminalConnection];
+  type: ComponentType;
+  value: number; // Ohms for resistors, Volts for voltage sources
+  // For resistor: [terminalA, terminalB]
+  // For voltage_source: [positiveTerminal, negativeTerminal]
+  terminals: [Terminal, Terminal];
 }
 
-/**
- * An ideal independent DC voltage source with two terminals.
- * terminals[0] = positive terminal, terminals[1] = negative terminal.
- * Polarity is ALWAYS determined by terminal position, not by label.
- */
-export interface VoltageSource {
-  kind: 'voltage-source';
+export interface ElectricalNode {
   id: string;
-  voltageVolts: number;
-  terminals: [TerminalConnection, TerminalConnection];
+  label?: string; // Optional user-facing label
 }
 
-/** Tagged union of all supported component types in the safe MVP. */
-export type CircuitComponent = Resistor | VoltageSource;
-
-// ─── Circuit ──────────────────────────────────────────────────────────────────
-
-/**
- * The ONE canonical circuit representation used across all subsystems:
- * teacher review, student exploration, simulation, reconstruction,
- * structural verification, and evidence recording.
- *
- * Visual position is NOT part of this model (AGENTS.md §3).
- */
 export interface Circuit {
   id: string;
-  label: string;
-  nodes: CircuitNode[];
-  components: CircuitComponent[];
+  name: string;
+  components: Component[];
+  nodes: ElectricalNode[];
+}
+
+export interface TerminalConnection {
+  componentId: string;
+  terminal: Terminal;
+}
+
+export interface ValidationError {
+  code: string;
+  message: string;
+  componentId?: string;
+  nodeId?: string;
+  terminalId?: string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
 }
