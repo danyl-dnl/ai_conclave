@@ -52,6 +52,25 @@ export function solveMNA(circuit: Circuit): SimulationResult {
         }
     }
 
+    // Check for floating / isolated nodes with zero component connections
+    const connectedNodeIds = new Set<string>();
+    for (const comp of circuit.components) {
+        for (const t of comp.terminals) {
+            if (t.nodeId !== null) {
+                connectedNodeIds.add(t.nodeId);
+            }
+        }
+    }
+
+    for (const node of circuit.nodes) {
+        if (!connectedNodeIds.has(node.id)) {
+            return createSimulationError(
+                'SINGULAR_CIRCUIT',
+                `Node '${node.id}' is floating / disconnected from all components.`
+            );
+        }
+    }
+
     // 2. Identify reference node (Ground = 0V)
     const voltageSources = circuit.components.filter(
         (c) => c.type === 'voltage_source'
@@ -59,6 +78,25 @@ export function solveMNA(circuit: Circuit): SimulationResult {
 
     let refNodeId: string | null = null;
     if (voltageSources.length > 0) {
+        // Check for contradictory parallel voltage sources
+        for (let i = 0; i < voltageSources.length; i++) {
+            for (let j = i + 1; j < voltageSources.length; j++) {
+                const vs1 = voltageSources[i];
+                const vs2 = voltageSources[j];
+                const p1 = vs1.terminals[0].nodeId;
+                const m1 = vs1.terminals[1].nodeId;
+                const p2 = vs2.terminals[0].nodeId;
+                const m2 = vs2.terminals[1].nodeId;
+
+                if ((p1 === p2 && m1 === m2 && vs1.value !== vs2.value) ||
+                    (p1 === m2 && m1 === p2 && vs1.value !== -vs2.value)) {
+                    return createSimulationError(
+                        'CONTRADICTORY_SOURCES',
+                        `Contradictory ideal voltage sources '${vs1.id}' and '${vs2.id}' connected between nodes '${p1}' and '${m1}'.`
+                    );
+                }
+            }
+        }
         // Prefer negative terminal of first voltage source
         refNodeId = voltageSources[0].terminals[1].nodeId;
     }

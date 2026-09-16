@@ -276,4 +276,83 @@ describe('simulateCircuit Electrical Engine', () => {
             expect(revResult.componentCurrents['R1']).toBeCloseTo(-0.06, 4);
         }
     });
+
+    it('Test H: Contradictory parallel voltage sources return CONTRADICTORY_SOURCES error', () => {
+        const circuit: Circuit = {
+            id: 'test-contradictory-sources',
+            name: 'Contradictory Voltage Sources',
+            nodes: [
+                { id: 'A', label: 'A' },
+                { id: 'B', label: 'B' },
+            ],
+            components: [
+                {
+                    id: 'V1',
+                    type: 'voltage_source',
+                    value: 6,
+                    terminals: [
+                        { id: 'V1-pos', nodeId: 'A' },
+                        { id: 'V1-neg', nodeId: 'B' },
+                    ],
+                },
+                {
+                    id: 'V2',
+                    type: 'voltage_source',
+                    value: 5, // Contradictory voltage across same nodes
+                    terminals: [
+                        { id: 'V2-pos', nodeId: 'A' },
+                        { id: 'V2-neg', nodeId: 'B' },
+                    ],
+                },
+            ],
+        };
+
+        const result = simulateCircuit(circuit);
+
+        expect(result.status).toBe('error');
+        if (result.status === 'error') {
+            expect(result.error.code).toBe('CONTRADICTORY_SOURCES');
+        }
+    });
+
+    it('Test I: Floating / isolated node or unsolvable matrix returns controlled error', () => {
+        const circuit: Circuit = {
+            id: 'test-floating-node',
+            name: 'Floating Node Circuit',
+            nodes: [
+                { id: 'A', label: 'A' },
+                { id: 'B', label: 'B' },
+                { id: 'ISOLATED', label: 'ISOLATED' },
+            ],
+            components: [
+                {
+                    id: 'V1',
+                    type: 'voltage_source',
+                    value: 6,
+                    terminals: [
+                        { id: 'V1-pos', nodeId: 'A' },
+                        { id: 'V1-neg', nodeId: 'B' },
+                    ],
+                },
+            ],
+        };
+
+        const result = simulateCircuit(circuit);
+
+        expect(result.status).toBe('error');
+        if (result.status === 'error') {
+            expect(result.error.code).toBe('SINGULAR_CIRCUIT');
+        }
+    });
+
+    it('Test J: Input Circuit object is not mutated by simulator', () => {
+        const original: Circuit = JSON.parse(JSON.stringify(goldenCircuit));
+        const circuitCopy: Circuit = JSON.parse(JSON.stringify(goldenCircuit));
+
+        const result = simulateCircuit(circuitCopy);
+
+        expect(result.status).toBe('success');
+        expect(circuitCopy).toEqual(original);
+    });
 });
+
